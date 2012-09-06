@@ -16,3 +16,9 @@ tmp
 .yardoc
 _yardoc
 doc/
+
+# Sublime projects
+*.sublime-*
+
+# Our secret
+secret
