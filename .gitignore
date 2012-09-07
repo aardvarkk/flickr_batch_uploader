@@ -20,5 +20,8 @@ doc/
 # Sublime projects
 *.sublime-*
 
-# Our secret
+# Our API key shared secret
 secret
+
+# Settings file
+settings.yaml
