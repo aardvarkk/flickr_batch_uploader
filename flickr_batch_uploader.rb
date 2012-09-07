@@ -11,8 +11,11 @@ SETTINGS_FILENAME = 'settings.yaml'
 FlickRaw.api_key = '2ce063626721827c2f7983a402ed16da' # Our API key
 FlickRaw.shared_secret = File.read(SECRET_FILENAME) # Read in the secret
 
+# Command line options
 opts = Trollop::options do
   opt :root, 'Root directory', type: :string, default: '.'
+  opt :auto_skip, 'Automatically skip existing sets', type: :boolean, default: true
+  opt :auto_add, 'Automatically add non-existent sets', type: :boolean, default: true
 end
 
 # Read in the settings
@@ -76,8 +79,9 @@ Find.find(opts[:root]) do |path|
   if FileTest.directory?(path)
     
     # If we have anything sitting in to_upload, we should upload here
-    unless to_upload.empty?
-
+    if to_upload.empty?
+      puts "No valid files found in previous directory"
+    else
       puts "Found #{to_upload.size} files"
 
       # p 'To Upload:'
@@ -88,7 +92,7 @@ Find.find(opts[:root]) do |path|
       # Does the set exist?
       existing_id = nil
       photosets.each do |set|
-        if set["title"] == set_title
+        if set["title"] == set_title and set["desciption"] == set_desc
           existing_id = set["id"]
           break
         end
@@ -98,11 +102,11 @@ Find.find(opts[:root]) do |path|
       puts "WARNING: Set '#{set_title}' already exists" if existing_id
 
       # Upload all of the images
-      puts "Would you like to upload #{to_upload.size} files to set '#{set_title}'" + (existing_id ? ' anyway?' : '?') + " (y/n)"
+      puts "Would you like to upload #{to_upload.size} files to set '#{set_title}' with description '#{set_desc}'" + (existing_id ? ' anyway?' : '?') + " (y/n)"
 
       # UPLOAD
       uploaded = []
-      if gets.strip.downcase == 'y'
+      if opts[:auto_add] or gets.strip.downcase == 'y'
         to_upload.each do |file|
           title = File.basename(file)
           desc  = nil
@@ -118,7 +122,7 @@ Find.find(opts[:root]) do |path|
         # Use the existing one if it's already there
         photoset_id = existing_id ? existing_id : flickr.photosets.create(:title => set_title, :description => set_desc, :primary_photo_id => uploaded.first)
 
-        puts "Created set '#{set_title}' with description '#{set_desc}'"
+        puts "Created set '#{set_title}'"
 
         # Add all of the images to it
         # Drop the first item since we used it to create the set
@@ -137,15 +141,18 @@ Find.find(opts[:root]) do |path|
 
     # Generate a set name and description from the folder
     parent = path.split(File::SEPARATOR).last
-    set_title = parent.split(" - ").first
-    set_desc = parent.split(" - ").last
+    partitions = parent.partition(" - ")
+    set_title = partitions.first
+    set_desc = partitions.last
 
-    # Debug    
-    # p 'Dir: ' + path
-    # p set_title
-    # p set_desc
-
-    puts "Processing set '#{set_title}'"
+    # If it's existing and we're on auto-skip, we can hop through this folder
+    set_exists = photosets.any? { |set| set_title == set["title"] and set_desc == set["description"] }
+    if opts[:auto_skip] and set_exists
+      puts "Skipping set '#{set_title}' because it already exists"
+      Find.prune
+    else
+      puts "Processing set '#{set_title}'"
+    end
   
   # It's a file -- we should already have a set_title and set_desc
   # These will come from our parent directory!
