@@ -29,15 +29,17 @@ class Uploader
 
   def self.do_upload(path, set_title, set_desc, photosets)
 
-    # Check integrity
-    puts "Checking integrity of file #{File.basename(path)}"
-    check = `jpeginfo -c "#{path}"` if JPGS.include?(File.extname(path).downcase)
-    if PROBLEMS.any? { |p| check.include?(p) }
-      puts "Found an error in file #{path}."
-      puts "Please fix it before trying to upload." 
-      abort    
+    # Check integrity if we support it
+    if JPGS.include?(File.extname(path).downcase)
+      puts "Checking integrity of file #{File.basename(path)}"
+      check = `jpeginfo -c "#{path}"` 
+      if PROBLEMS.any? { |p| check.include?(p) }
+        puts "Found an error in file #{path}."
+        puts "Please fix it before trying to upload." 
+        abort    
+      end
+      puts "Integrity OK!"
     end
-    puts "Integrity OK!"
 
     # Do the actual upload
     title = File.basename(path)
