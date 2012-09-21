@@ -29,6 +29,29 @@ class Uploader
 
   def self.do_upload(path, set_title, set_desc, photosets)
 
+    puts "About to upload #{File.basename(path)}"
+
+    # Get a name and description
+    title = File.basename(path)
+    desc  = nil
+
+    # Check if this file already exists
+    # For it to already exist, its set must exist, and the title must match
+    existing = Uploader.get_existing_photoset(set_title, set_desc, photosets)
+    if existing
+      # Does the file already exist?
+      # Get the whole list of photos and see if there's a matching title
+      # puts "Getting photos in this photoset"
+      photos = flickr.photosets.getPhotos(:photoset_id => existing["id"])["photo"]
+      # puts "Got the photos"
+      photos.each do |photo|
+        if title == photo["title"]
+          puts "#{File.basename(path)} already exists in the set. Skipping..."
+          return
+        end
+      end
+    end
+
     # Check integrity if we support it
     if JPGS.include?(File.extname(path).downcase)
       puts "Checking integrity of file #{File.basename(path)}"
@@ -42,8 +65,6 @@ class Uploader
     end
 
     # Do the actual upload
-    title = File.basename(path)
-    desc  = nil
     print "Uploading file #{File.basename(path)} with title '#{title}' and description '#{desc}'"
     uploaded = flickr.upload_photo(path, :title => title, :description => desc)
     puts "...OK"

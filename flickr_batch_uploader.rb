@@ -18,8 +18,6 @@ FlickRaw.shared_secret = File.read(SECRET_FILENAME) # Read in the secret
 # Command line options
 opts = Trollop::options do
   opt :root, 'Root directory', type: :string, default: '.'
-  opt :auto_skip, 'Automatically skip existing sets', type: :boolean, default: true
-  opt :auto_add, 'Automatically add non-existent sets', type: :boolean, default: true
 end
 
 # Read in the settings
@@ -83,9 +81,39 @@ Find.find(opts[:root]) do |path|
   # If it's a directory, we may want to skip the whole thing if the set already exists
   if File.directory?(path)
     puts "Entering folder #{path}"
-    if opts[:auto_skip] and Uploader.get_existing_photoset(set_title, set_desc, photosets)
-      puts "Skipping set '#{set_title}' because it already exists"
-      Find.prune
+    
+    # Check if it exists
+    exists = Uploader.get_existing_photoset(set_title, set_desc, photosets)
+
+    # Is the photo count correct for the images we support?
+    if exists
+
+      # Get the online count
+      online_count = flickr.photosets.getInfo(:photoset_id => exists["id"])["photos"]
+      puts "Found #{online_count} online photos"
+
+      # Get the local count
+      local_count = 0
+      EXTS.each do |ext|
+        dir_check = "#{path}#{File::SEPARATOR}*#{ext}"
+        # puts "Checking path #{dir_check}"
+        local_count += Dir.glob(dir_check, File::FNM_CASEFOLD).count
+      end
+      puts "Counted #{local_count} local photos"
+
+      # Compare them
+      # We have ones we missed!
+      if online_count < local_count
+        puts "There are missing photos from your local drive."
+        puts "We'll add the missing ones."
+        next
+      elsif online_count == local_count
+        puts "Skipping set '#{set_title}' because it already exists"
+        Find.prune
+      else
+        abort("Aborting because there are more photos in your online set than locally")
+      end
+
     else
       next
     end
