@@ -35,14 +35,27 @@ class Uploader
     title = File.basename(path)
     desc  = nil
 
+    # Log what we're looking for
+    puts "Searching for set with title " + title.to_s + " and description " + desc.to_s
+
     # Check if this file already exists
     # For it to already exist, its set must exist, and the title must match
     existing = Uploader.get_existing_photoset(set_title, set_desc, photosets)
     if existing
+
+      puts "Found existing photoset with id " + existing["id"]
+
       # Does the file already exist?
       # Get the whole list of photos and see if there's a matching title
       # puts "Getting photos in this photoset"
-      photos = flickr.photosets.getPhotos(:photoset_id => existing["id"])["photo"]
+      # Sometimes this seems to fail on the first photo, so we'll keep going until it succeeds
+      begin
+        photos = flickr.photosets.getPhotos(:photoset_id => existing["id"])["photo"]
+      rescue
+        puts "Failed Response. Retrying..."
+        retry
+      end
+
       # puts "Got the photos"
       photos.each do |photo|
         if title == photo["title"]
@@ -66,8 +79,16 @@ class Uploader
 
     # Do the actual upload
     print "Uploading file #{File.basename(path)} with title '#{title}' and description '#{desc}'"
-    uploaded = flickr.upload_photo(path, :title => title, :description => desc)
+
+    begin
+      uploaded = flickr.upload_photo(path, :title => title, :description => desc)
+    rescue
+      puts "Failed upload. Retrying..."
+      retry
+    end
+    
     puts "...OK"
+
 
     # Get or create the photoset if it doesn't exist
     photoset, was_created = Uploader.get_or_create_photoset(uploaded, set_title, set_desc, photosets)

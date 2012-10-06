@@ -104,8 +104,8 @@ Find.find(opts[:root]) do |path|
       # Compare them
       # We have ones we missed!
       if online_count < local_count
-        puts "There are missing photos from your local drive."
-        puts "We'll add the missing ones."
+        puts "There are local photos missing online!"
+        puts "We'll add them."
         next
       elsif online_count == local_count
         puts "Skipping set '#{set_title}' because it already exists"
