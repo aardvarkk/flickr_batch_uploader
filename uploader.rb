@@ -95,8 +95,16 @@ class Uploader
     
     # Add it to the set
     unless was_created
-      flickr.photosets.addPhoto(:photoset_id => photoset["id"], :photo_id => uploaded)
+
+      begin
+        flickr.photosets.addPhoto(:photoset_id => photoset["id"], :photo_id => uploaded)
+      rescue
+        puts "Failed adding photo to set. Retrying..."
+        retry
+      end
+
       puts "Added #{File.basename(path)} to set '#{set_title}'"
+      
     end
 
   end
