@@ -1,4 +1,4 @@
-require 'find'
+require 'find' # For searching folders
 require 'flickraw' # flickr API
 require 'trollop' # Command line parsing
 require 'yaml' # For storing user data
@@ -12,8 +12,8 @@ SECRET_FILENAME = 'secret'
 SETTINGS_FILENAME = 'settings.yaml'
 PROBLEMS = %w(WARNING ERROR)
 
-FlickRaw.api_key = '2ce063626721827c2f7983a402ed16da' # Our API key
-FlickRaw.shared_secret = File.read(SECRET_FILENAME) # Read in the secret
+FlickRaw.api_key = "2ce063626721827c2f7983a402ed16da" # Our API key
+FlickRaw.shared_secret = File.read(SECRET_FILENAME).chomp # Read in the secret
 
 # Command line options
 opts = Trollop::options do
